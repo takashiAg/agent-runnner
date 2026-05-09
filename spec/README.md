@@ -1,6 +1,6 @@
 # agent-runnner 設計
 
-GitHub Issue / PR を起点に、AI が計画、task 分解、patch 提案、観点別レビューを支援する runner。
+GitHub Issue / PR を起点に、AI が計画、task 分解、自動修正、観点別レビューを支援する runner。
 
 AI はコマンドを実行しない。shell、git、GitHub API、network、filesystem write は runner だけが扱う。
 

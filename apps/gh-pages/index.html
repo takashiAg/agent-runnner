@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="agent-runnner: GitHub Issue と PR を起点に、AI が計画、task 分解、patch 提案、観点別レビューを支援する runner。"
+    />
+    <title>agent-runnner</title>
+    <script type="module" src="/src/main.ts"></script>
+  </head>
+  <body>
+    <main class="page">
+      <nav class="topbar" aria-label="Primary">
+        <a class="brand" href="/">agent-runnner</a>
+        <div class="navlinks">
+          <a href="#workflow">Workflow</a>
+          <a href="#package">Package</a>
+          <a href="https://github.com/takashiAg/agent-runnner">GitHub</a>
+        </div>
+      </nav>
+
+      <section class="hero">
+        <div class="hero-copy">
+          <p class="eyebrow">GitHub-native AI runner</p>
+          <h1>Issue から PR までを、安全な runner でつなぐ。</h1>
+          <p class="lead">
+            story / bug の整理、task 分解、worktree 上での patch 提案、PdM・PjM・Tech Lead・Engineer
+            観点のレビューを、Node.js CLI と GitHub Actions で運用するための実装基盤です。
+          </p>
+          <div class="commands" aria-label="Install commands">
+            <code>npm install -g label-triggered-ai-runner</code>
+            <code>label-ai-runner --help</code>
+          </div>
+        </div>
+      </section>
+
+      <section id="workflow" class="band">
+        <h2>Workflow</h2>
+        <div class="grid">
+          <article>
+            <h3>Plan</h3>
+            <p>Issue の label から story / bug / task を読み、実装前の方針と未決事項を整理します。</p>
+          </article>
+          <article>
+            <h3>Split</h3>
+            <p>monorepo の BE / FE / shared 境界を読み、1 PR でレビューしやすい task に分けます。</p>
+          </article>
+          <article>
+            <h3>Run</h3>
+            <p>Codex CLI / Claude Code CLI は provider として起動し、LLM にはコマンド実行権限を渡しません。</p>
+          </article>
+          <article>
+            <h3>Review</h3>
+            <p>PR に対して PdM、PjM、Tech Lead、Engineer の観点を分けてコメントします。</p>
+          </article>
+        </div>
+      </section>
+
+      <section id="package" class="band package">
+        <h2>Package</h2>
+        <p>
+          このリポジトリは pnpm workspace の monorepo です。CLI は
+          <code>packages/runner</code>、公式サイトは <code>apps/gh-pages</code> にあります。
+        </p>
+      </section>
+    </main>
+  </body>
+</html>

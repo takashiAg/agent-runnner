@@ -1,0 +1,40 @@
+{
+  "name": "label-triggered-ai-runner",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Label-triggered AI runner for GitHub issue planning, patch proposals, and review workflows.",
+  "bin": {
+    "label-ai-runner": "./dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "config",
+    "README.md"
+  ],
+  "scripts": {
+    "dev": "tsx src/cli.ts",
+    "build": "tsc -p tsconfig.json && node scripts/fix-bin-permissions.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "prepack": "pnpm build"
+  },
+  "dependencies": {
+    "@octokit/rest": "^22.0.0",
+    "commander": "^14.0.2",
+    "execa": "^9.6.0",
+    "minimatch": "^10.1.1",
+    "yaml": "^2.8.2",
+    "zod": "^4.1.13"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.15"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

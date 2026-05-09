@@ -1,0 +1,33 @@
+{
+  "name": "agent-runnner",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Monorepo for the label-triggered AI runner and project site.",
+  "scripts": {
+    "build": "pnpm -r build",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "dev:runner": "pnpm --filter label-triggered-ai-runner dev",
+    "dev:site": "pnpm --filter @agent-runnner/gh-pages dev",
+    "build:site": "pnpm --filter @agent-runnner/gh-pages build"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.1",
+    "@types/node": "^24.10.1",
+    "eslint": "^9.39.1",
+    "prettier": "^3.7.3",
+    "typescript-eslint": "^8.50.0"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "packageManager": "pnpm@11.0.9",
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
+  }
+}

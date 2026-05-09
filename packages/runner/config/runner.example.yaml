@@ -1,0 +1,131 @@
+repository: owner/name
+
+labels:
+  trigger: ai:ready
+  plan: ai:plan
+  splitTasks: ai:split-tasks
+  running: ai:running
+  failed: ai:failed
+  blocked: ai:blocked
+  prCreated: ai:pr-created
+  needsSplit: ai:needs-split
+  needsHumanInput: ai:needs-human-input
+  story: type:story
+  bug: type:bug
+  task: type:task
+
+branch:
+  prefix: ai/issue-
+
+checkout:
+  strategy: fresh-clone
+  cacheRoot: .agent-runner/cache
+  cloneRoot: .agent-runner/repos
+  bareRepositoryCache: false
+  shallowClone: false
+  fetchDepth: 0
+
+worktree:
+  root: .agent-runner/worktrees
+
+ai:
+  provider: codex-cli
+  mode: patch-only
+  allowTools: false
+  allowCommands: false
+  output: json
+  timeoutSeconds: 600
+  providers:
+    codex-cli:
+      command: codex
+      args:
+        - exec
+        - --json
+    claude-code-cli:
+      command: claude
+      args:
+        - --output-format
+        - json
+
+concurrency:
+  global: 2
+  perRepository: 1
+
+patch:
+  maxFiles: 12
+  maxLines: 800
+  denylist:
+    - .env
+    - .env.*
+    - "**/secrets/**"
+    - "**/*secret*"
+    - ".github/workflows/deploy-*"
+    - "infra/production/**"
+    - "db/production/**"
+
+conflict:
+  autoResolve: true
+  askWhenUnclear: true
+  maxConflictFilesForAutoResolve: 3
+  allowedAutoResolveKinds:
+    - context-shift
+    - formatting-only
+    - import-order
+  blockedPaths:
+    - infra/**
+    - db/**
+    - "**/*auth*"
+    - "**/*permission*"
+
+validation:
+  commands:
+    - git diff --check
+    - pnpm test:contracts
+    - pnpm lint
+    - pnpm typecheck
+    - pnpm test
+    - pnpm build
+
+commentCommands:
+  allowlist:
+    - /review
+    - /split-tasks
+    - /resolve-conflict
+
+taskPlanning:
+  autoCreateIssues: false
+  maxTaskFiles: 12
+  maxTaskPatchLines: 800
+  requireOnePrPerTask: true
+  splitByBoundaries:
+    - backend
+    - frontend
+    - shared
+    - docs
+    - infra
+
+repositoryAnalysis:
+  detectWorkspaces: true
+  detectBoundaries: true
+  includeFileTreeDepth: 3
+  maxContextFiles: 40
+  boundaryHints:
+    backend:
+      - apps/api/**
+      - packages/server/**
+      - src/server/**
+    frontend:
+      - apps/web/**
+      - packages/ui/**
+      - src/components/**
+
+review:
+  autoReviewOnPrOpen: true
+  autoReviewOnPrUpdate: false
+  commentCommand: /review
+  roles:
+    - pdm
+    - pjm
+    - tech-lead
+    - engineer
+

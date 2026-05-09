@@ -1,36 +1,28 @@
 # Label Triggered AI 実装基盤 設計書
 
-## Repository
-
-このリポジトリは pnpm workspace の monorepo として構成する。
-
-```txt
-.
-├── packages/runner
-│   └── label-ai-runner CLI package
-├── apps/gh-pages
-│   └── GitHub Pages で公開する公式サイト
-└── spec
-    └── 設計書
-```
-
-主なコマンド:
-
-```txt
-pnpm install
-pnpm typecheck
-pnpm test
-pnpm build
-pnpm dev:site
-pnpm dev:runner -- --help
-```
-
 ## 目的
 
-GitHub Issue に特定の label が付いたら、AI が実装案と patch を生成し、runner が検証して PR を作る仕組みを作る。
+GitHub Issue や Pull Request を起点に、AI がコーディング準備、task 分解、実装 patch 提案、観点別レビューを支援する仕組みを作る。
 
-この設計では、AI はコマンドを実行しない。  
-AI は shell、git、GitHub API、network、filesystem write を直接使わない。AI の役割は、runner が渡した context を読んで、変更案と patch を返すことに限定する。
+この仕組みでは、AI はコマンドを実行しない。AI は shell、git、GitHub API、network、filesystem write を直接使わない。
+
+AI の役割は、runner が渡した context を読んで、方針、task 分解案、patch、レビュー結果を structured output として返すことに限定する。worktree 作成、patch 適用、検証、commit、push、PR 作成は runner だけが行う。
+
+## どんなアプリケーションか
+
+`agent-runnner` は、GitHub 上の Issue / PR workflow に AI を組み込むための Node.js CLI アプリケーション。
+
+主な用途:
+
+- `type:story` / `type:bug` Issue を読み、実装前の解決方針をコメントする
+- story / bug を、PR レビューしやすい `type:task` Issue に分解する
+- `type:task` Issue から worktree を作り、AI に patch を提案させる
+- runner が patch を検査し、allowlist された検証だけを実行する
+- 検証が通った場合だけ commit / push / PR 作成を行う
+- PR に対して PdM、PjM、Tech Lead、Engineer の観点別レビューをコメントする
+- conflict が起きた場合、安全に自動解消できる範囲だけ処理し、判断が必要なら Issue / PR で人間に確認する
+
+Codex CLI や Claude Code CLI を使う場合も、それらは runner が起動する AI provider adapter として扱う。LLM にはコマンド実行権限を渡さない。
 
 ## 基本方針
 
@@ -69,6 +61,31 @@ runner
   - commit / push
   - PR 作成
   - issue comment / label 更新
+```
+
+## Repository
+
+このリポジトリは pnpm workspace の monorepo として構成する。
+
+```txt
+.
+├── packages/runner
+│   └── label-ai-runner CLI package
+├── apps/gh-pages
+│   └── GitHub Pages で公開する公式サイト
+└── spec
+    └── 設計書
+```
+
+主なコマンド:
+
+```txt
+pnpm install
+pnpm typecheck
+pnpm test
+pnpm build
+pnpm dev:site
+pnpm dev:runner -- --help
 ```
 
 ## Label 設計

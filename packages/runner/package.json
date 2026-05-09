@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Label-triggered AI runner for GitHub issue planning, patch proposals, and review workflows.",
+  "description": "Label-triggered AI runner for GitHub issue planning, automated fixes, and review workflows.",
   "bin": {
     "label-ai-runner": "./dist/cli.js"
   },

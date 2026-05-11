@@ -1,16 +1,15 @@
-export function buildPrReviewContext(input: {
-  title: string;
-  body: string;
-  diff: string;
-  labels: string[];
-}): string {
+import type { PullRequestReviewPromptInput } from "../../../core/port/review-pr.js";
+
+export function buildPrReviewContext(input: PullRequestReviewPromptInput): string {
   return JSON.stringify(
     {
       kind: "pr-review-context",
+      number: input.number,
       title: input.title,
       body: input.body,
       diff: input.diff,
-      labels: input.labels
+      labels: input.labels,
+      roles: input.roles
     },
     null,
     2

@@ -1,10 +1,30 @@
 #!/usr/bin/env node
+import { readFile } from "node:fs/promises";
+import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { Command } from "commander";
+import { splitTasks } from "../../core/app/usecases/split-tasks.js";
+import { reviewPr } from "../../core/app/usecases/review-pr.js";
 import { runOnce } from "../../core/app/usecases/run-once.js";
+import {
+  decideCheckpointResume,
+  findLatestCheckpointComment
+} from "../../core/app/services/checkpoint-resume.js";
+import { routeWorkerEvent } from "../../core/app/usecases/worker.js";
+import type { WorkerAction } from "../../core/app/usecases/worker.js";
 import { routeCommentCommand } from "../../core/app/routing/command-router.js";
 import { inspectPatch } from "../../core/app/policy/patch-guard.js";
+import type { RunnerSettings } from "../../core/app/settings/runner-settings.js";
 import { loadConfig } from "../outbound/config/load-config.js";
-import { createRunOnceDependencies } from "../composition-root.js";
+import { analyzeRepository } from "../outbound/repository/repository-analyzer.js";
+import { createIssueReader } from "../outbound/github/issue-reader.js";
+import { parseGitHubWebhookEvent } from "./webhook-event.js";
+import {
+  createCheckpointDependencies,
+  createGitHubApi,
+  createReviewPrDependencies,
+  createRunOnceDependencies,
+  createSplitTasksDependencies
+} from "../composition-root.js";
 
 const program = new Command();
 
@@ -81,36 +101,190 @@ program
 
 program
   .command("split-tasks")
-  .description("Placeholder for task planning workflow")
+  .description("Generate a task split plan for an issue")
   .requiredOption("-c, --config <path>", "config file path")
+  .option("--repo-root <path>", "local repository root for analysis", process.cwd())
+  .option("--cwd <path>", "working directory passed to the AI provider")
   .argument("<issue>", "issue number")
-  .action(async (issue: string, options: { config: string }) => {
-    await loadConfig(options.config);
-    console.log(
-      JSON.stringify({ ok: true, issue: Number(issue), status: "not_implemented" }, null, 2)
+  .action(async (issue: string, options: { config: string; repoRoot: string; cwd?: string }) => {
+    const config = await loadConfig(options.config);
+    const client = createGitHubApi(config);
+    const issueReader = createIssueReader(client, config);
+    const [issueDetails, analysis] = await Promise.all([
+      issueReader.getIssue(Number(issue)),
+      analyzeRepository(options.repoRoot, config)
+    ]);
+    const result = await splitTasks(
+      config,
+      { issue: issueDetails, analysis, cwd: options.cwd },
+      createSplitTasksDependencies(config)
     );
+    console.log(JSON.stringify(result, null, 2));
   });
 
 program
   .command("review-pr")
-  .description("Placeholder for multi-role PR review workflow")
+  .description("Run multi-role PR review workflow")
   .requiredOption("-c, --config <path>", "config file path")
+  .option("--dry-run", "build review input without calling the AI provider or commenting")
   .argument("<pr>", "pull request number")
-  .action(async (pr: string, options: { config: string }) => {
-    await loadConfig(options.config);
-    console.log(JSON.stringify({ ok: true, pr: Number(pr), status: "not_implemented" }, null, 2));
+  .action(async (pr: string, options: { config: string; dryRun?: boolean }) => {
+    const config = await loadConfig(options.config);
+    const result = await reviewPr(
+      config,
+      { prNumber: Number(pr), dryRun: options.dryRun },
+      createReviewPrDependencies(config)
+    );
+    console.log(JSON.stringify(result, null, 2));
   });
 
 program
   .command("resolve-conflict")
-  .description("Placeholder for conflict resume workflow")
+  .description("Inspect checkpoint state and decide conflict resume behavior")
   .requiredOption("-c, --config <path>", "config file path")
   .argument("<issue>", "issue number")
   .action(async (issue: string, options: { config: string }) => {
-    await loadConfig(options.config);
-    console.log(
-      JSON.stringify({ ok: true, issue: Number(issue), status: "not_implemented" }, null, 2)
+    const config = await loadConfig(options.config);
+    const checkpointWorkflow = createCheckpointDependencies(config);
+    const latest = findLatestCheckpointComment(
+      await checkpointWorkflow.listIssueComments(Number(issue))
     );
+    const decision = decideCheckpointResume(latest?.checkpoint ?? null);
+    if (!decision.canResume) {
+      await checkpointWorkflow.comment(
+        Number(issue),
+        ["resolve-conflict stopped.", "", ...decision.reasons.map((reason) => `- ${reason}`)].join(
+          "\n"
+        )
+      );
+    }
+    console.log(JSON.stringify({ ok: true, issue: Number(issue), decision }, null, 2));
+  });
+
+program
+  .command("handle-webhook")
+  .description("Handle a GitHub webhook payload with the runner worker")
+  .requiredOption("-c, --config <path>", "config file path")
+  .requiredOption("--event <path>", "path to a GitHub webhook JSON payload")
+  .option("--repo-root <path>", "local repository root for analysis", process.cwd())
+  .action(async (options: { config: string; event: string; repoRoot: string }) => {
+    const config = await loadConfig(options.config);
+    const payload = JSON.parse(await readFile(options.event, "utf8")) as unknown;
+    const event = parseGitHubWebhookEvent(payload as never);
+    const action: WorkerAction = event
+      ? routeWorkerEvent(config, event)
+      : { kind: "ignore", reason: "unsupported webhook event" };
+    const result = await executeWorkerAction(config, action, { repoRoot: options.repoRoot });
+    console.log(JSON.stringify({ ok: true, event, action, result }, null, 2));
+  });
+
+program
+  .command("worker")
+  .description("Run a long-lived GitHub webhook worker")
+  .requiredOption("-c, --config <path>", "config file path")
+  .option("--host <host>", "host to bind", "0.0.0.0")
+  .option("--port <port>", "port to bind", "3000")
+  .option("--repo-root <path>", "local repository root for analysis", process.cwd())
+  .action(async (options: { config: string; host: string; port: string; repoRoot: string }) => {
+    const config = await loadConfig(options.config);
+    const port = Number(options.port);
+    if (!Number.isInteger(port) || port <= 0) {
+      throw new Error(`Invalid worker port: ${options.port}`);
+    }
+
+    const server = createServer(async (request, response) => {
+      await handleWorkerRequest(config, request, response, { repoRoot: options.repoRoot });
+    });
+
+    await new Promise<void>((resolve, reject) => {
+      server.once("error", reject);
+      server.listen(port, options.host, () => {
+        server.off("error", reject);
+        console.log(JSON.stringify({ ok: true, worker: "listening", host: options.host, port }));
+        resolve();
+      });
+    });
+
+    await new Promise<void>((resolve) => {
+      const shutdown = () => server.close(() => resolve());
+      process.once("SIGINT", shutdown);
+      process.once("SIGTERM", shutdown);
+    });
   });
 
 await program.parseAsync(process.argv);
+
+async function handleWorkerRequest(
+  config: RunnerSettings,
+  request: IncomingMessage,
+  response: ServerResponse,
+  options: { repoRoot: string }
+): Promise<void> {
+  if (request.method === "GET" && request.url === "/healthz") {
+    sendJson(response, 200, { ok: true });
+    return;
+  }
+  if (request.method !== "POST" || request.url !== "/webhook") {
+    sendJson(response, 404, { ok: false, error: "not_found" });
+    return;
+  }
+
+  try {
+    const payload = JSON.parse(await readRequestBody(request)) as unknown;
+    const event = parseGitHubWebhookEvent(payload as never);
+    const action: WorkerAction = event
+      ? routeWorkerEvent(config, event)
+      : { kind: "ignore", reason: "unsupported webhook event" };
+    const result = await executeWorkerAction(config, action, options);
+    sendJson(response, 200, { ok: true, event, action, result });
+  } catch (error) {
+    sendJson(response, 500, {
+      ok: false,
+      error: error instanceof Error ? error.message : String(error)
+    });
+  }
+}
+
+async function readRequestBody(request: IncomingMessage): Promise<string> {
+  const chunks: Buffer[] = [];
+  for await (const chunk of request) {
+    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+  }
+  return Buffer.concat(chunks).toString("utf8");
+}
+
+function sendJson(response: ServerResponse, status: number, body: unknown): void {
+  response.writeHead(status, { "content-type": "application/json" });
+  response.end(JSON.stringify(body));
+}
+
+async function executeWorkerAction(
+  config: RunnerSettings,
+  action: WorkerAction,
+  options: { repoRoot: string }
+): Promise<unknown> {
+  switch (action.kind) {
+    case "run-once":
+      return runOnce(config, { repoRoot: options.repoRoot }, createRunOnceDependencies(config));
+    case "split-tasks": {
+      const client = createGitHubApi(config);
+      const issueReader = createIssueReader(client, config);
+      const [issue, analysis] = await Promise.all([
+        issueReader.getIssue(action.issueNumber),
+        analyzeRepository(options.repoRoot, config)
+      ]);
+      return splitTasks(config, { issue, analysis }, createSplitTasksDependencies(config));
+    }
+    case "review-pr":
+      return reviewPr(config, { prNumber: action.prNumber }, createReviewPrDependencies(config));
+    case "resolve-conflict": {
+      const checkpointWorkflow = createCheckpointDependencies(config);
+      const latest = findLatestCheckpointComment(
+        await checkpointWorkflow.listIssueComments(action.issueNumber)
+      );
+      return decideCheckpointResume(latest?.checkpoint ?? null);
+    }
+    case "ignore":
+      return { skipped: true, reason: action.reason };
+  }
+}

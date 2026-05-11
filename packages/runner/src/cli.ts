@@ -9,7 +9,9 @@ const program = new Command();
 
 program
   .name("label-ai-runner")
-  .description("Label-triggered AI runner for GitHub issue planning, task splitting, implementation, and review workflows.")
+  .description(
+    "Label-triggered AI runner for GitHub issue planning, task splitting, implementation, and review workflows."
+  )
   .version("0.1.0");
 
 program
@@ -23,14 +25,33 @@ program
 
 program
   .command("run-once")
-  .description("Run one dry-run orchestration pass")
+  .description("Run one label-triggered orchestration pass")
   .requiredOption("-c, --config <path>", "config file path")
   .option("--repo-root <path>", "local repository root for analysis", process.cwd())
-  .action(async (options: { config: string; repoRoot: string }) => {
-    const config = await loadConfig(options.config);
-    const result = await runOnce(config, { repoRoot: options.repoRoot });
-    console.log(JSON.stringify(result, null, 2));
-  });
+  .option(
+    "--remote-url <url>",
+    "repository remote URL; defaults to https://github.com/<owner>/<repo>.git"
+  )
+  .option("--base-branch <branch>", "base branch for created pull requests", "main")
+  .option("--dry-run", "pick and analyze without labels, checkout, AI, patch, or PR")
+  .action(
+    async (options: {
+      config: string;
+      repoRoot: string;
+      remoteUrl?: string;
+      baseBranch?: string;
+      dryRun?: boolean;
+    }) => {
+      const config = await loadConfig(options.config);
+      const result = await runOnce(config, {
+        repoRoot: options.repoRoot,
+        remoteUrl: options.remoteUrl,
+        baseBranch: options.baseBranch,
+        dryRun: options.dryRun
+      });
+      console.log(JSON.stringify(result, null, 2));
+    }
+  );
 
 program
   .command("route-comment")
@@ -59,7 +80,9 @@ program
   .argument("<issue>", "issue number")
   .action(async (issue: string, options: { config: string }) => {
     await loadConfig(options.config);
-    console.log(JSON.stringify({ ok: true, issue: Number(issue), status: "not_implemented" }, null, 2));
+    console.log(
+      JSON.stringify({ ok: true, issue: Number(issue), status: "not_implemented" }, null, 2)
+    );
   });
 
 program
@@ -79,8 +102,9 @@ program
   .argument("<issue>", "issue number")
   .action(async (issue: string, options: { config: string }) => {
     await loadConfig(options.config);
-    console.log(JSON.stringify({ ok: true, issue: Number(issue), status: "not_implemented" }, null, 2));
+    console.log(
+      JSON.stringify({ ok: true, issue: Number(issue), status: "not_implemented" }, null, 2)
+    );
   });
 
 await program.parseAsync(process.argv);
-

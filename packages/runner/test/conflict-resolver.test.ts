@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { analyzeConflict } from "../src/core/domain/policy/conflict-resolver.js";
+import { analyzeConflict } from "../src/core/app/policy/conflict-resolver.js";
 import { loadExampleConfig } from "./helpers.js";
 
 describe("analyzeConflict", () => {

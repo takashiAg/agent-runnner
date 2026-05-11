@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { routeCommentCommand } from "../src/core/domain/service/command-router.js";
+import { routeCommentCommand } from "../src/core/app/routing/command-router.js";
 import { loadExampleConfig } from "./helpers.js";
 
 describe("routeCommentCommand", () => {

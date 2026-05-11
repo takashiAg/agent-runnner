@@ -2,7 +2,7 @@ import type { RunnerConfig } from "../../core/app/config/runner-config.js";
 import type { RunOnceDependencies } from "../../core/app/usecases/run-once.js";
 import { runAgentCli } from "./ai/agent-cli-gateway.js";
 import { parseAiPatchOutput } from "../../core/app/services/validate-ai-output.js";
-import { inspectPatch } from "../../core/domain/policy/patch-guard.js";
+import { inspectPatch } from "../../core/app/policy/patch-guard.js";
 import { runValidation } from "./command/validation-runner.js";
 import { applyPatch } from "./git/apply-patch.js";
 import { commitAndPushChanges } from "./git/git-publisher.js";

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { inspectPatch } from "../src/core/domain/policy/patch-guard.js";
+import { inspectPatch } from "../src/core/app/policy/patch-guard.js";
 import { loadExampleConfig } from "./helpers.js";
 
 describe("inspectPatch", () => {

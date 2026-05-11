@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { classifyIssue } from "../src/core/domain/service/classify.js";
+import { classifyIssue } from "../src/core/app/policy/classify-issue.js";
 import { loadExampleConfig } from "./helpers.js";
 
 describe("classifyIssue", () => {

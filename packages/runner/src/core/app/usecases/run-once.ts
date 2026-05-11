@@ -1,18 +1,18 @@
-import type { RunnerConfig } from "../config/runner-config.js";
 import type { Checkpoint } from "../../domain/entity/checkpoint.js";
-import { buildIssueContext } from "../context/build-issue-context.js";
 import { commentCheckpoint } from "../services/checkpoint-comment.js";
-import type { RunAgentCli } from "../ports/agent.js";
-import type { GitHubIssue, IssueWorkflow } from "../ports/issue-workflow.js";
-import type { ApplyPatch, InspectPatch, ParseAiPatchOutput } from "../ports/patch-workflow.js";
-import type { CommitAndPushChanges, PublishResult } from "../ports/publisher.js";
+import type { RunAgentCli } from "../../port/agent.js";
+import type { GitHubIssue, IssueWorkflow } from "../../port/issue-workflow.js";
+import type { ApplyPatch, InspectPatch, ParseAiPatchOutput } from "../../port/patch-workflow.js";
+import type { BuildIssuePrompt } from "../../port/prompt-builder.js";
+import type { CommitAndPushChanges, PublishResult } from "../../port/publisher.js";
 import type {
   AnalyzeRepository,
   CheckoutRepository,
   CreateWorktree,
   RepositoryAnalysis
-} from "../ports/repository.js";
-import type { RunValidation, ValidationResult } from "../ports/validation.js";
+} from "../../port/repository.js";
+import type { RunValidation, ValidationResult } from "../../port/validation.js";
+import type { RunnerSettings } from "../settings/runner-settings.js";
 
 export type RunOnceResult = {
   ok: true;
@@ -48,11 +48,12 @@ export type RunOnceDependencies = {
   applyPatch: ApplyPatch;
   runValidation: RunValidation;
   commitAndPushChanges: CommitAndPushChanges;
+  buildIssuePrompt: BuildIssuePrompt;
   now?: () => Date;
 };
 
 export async function runOnce(
-  config: RunnerConfig,
+  config: RunnerSettings,
   options: { repoRoot: string; remoteUrl?: string; baseBranch?: string; dryRun?: boolean },
   dependencies: RunOnceDependencies
 ): Promise<RunOnceResult> {
@@ -99,7 +100,7 @@ export async function runOnce(
     branch = createdWorktree.branch;
     worktree = createdWorktree.worktreePath;
 
-    const context = buildIssueContext({
+    const context = deps.buildIssuePrompt({
       title: issue.title,
       body: issue.body,
       labels: issue.labels,
@@ -312,7 +313,7 @@ async function createPullRequest(
 
 async function failIssue(
   workflow: IssueWorkflow,
-  config: RunnerConfig,
+  config: RunnerSettings,
   checkpoint: Checkpoint
 ): Promise<void> {
   if (!checkpoint.issueNumber) return;

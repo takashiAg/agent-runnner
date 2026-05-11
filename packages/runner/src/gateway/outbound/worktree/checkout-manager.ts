@@ -1,14 +1,14 @@
 import path from "node:path";
 import { execa } from "execa";
-import type { RunnerConfig } from "../../../core/app/config/runner-config.js";
+import type { RunnerSettings } from "../../../core/app/settings/runner-settings.js";
 
 export type CheckoutResult = {
   repositoryPath: string;
-  strategy: RunnerConfig["checkout"]["strategy"];
+  strategy: RunnerSettings["checkout"]["strategy"];
 };
 
 export async function checkoutRepository(
-  config: RunnerConfig,
+  config: RunnerSettings,
   options: { remoteUrl: string; runId: string; cwd: string }
 ): Promise<CheckoutResult> {
   if (config.checkout.strategy !== "fresh-clone") {

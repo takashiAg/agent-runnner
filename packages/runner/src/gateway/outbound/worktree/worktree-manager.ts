@@ -1,9 +1,9 @@
 import path from "node:path";
 import { execa } from "execa";
-import type { RunnerConfig } from "../../../core/app/config/runner-config.js";
+import type { RunnerSettings } from "../../../core/app/settings/runner-settings.js";
 
 export async function createWorktree(
-  config: RunnerConfig,
+  config: RunnerSettings,
   options: { repositoryPath: string; issueNumber: number }
 ): Promise<{ branch: string; worktreePath: string }> {
   const branch = `${config.branch.prefix}${options.issueNumber}`;

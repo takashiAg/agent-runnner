@@ -1,17 +1,17 @@
 import type { Octokit } from "@octokit/rest";
-import type { IssueWorkflow } from "../../../core/app/ports/issue-workflow.js";
-import type { RunnerConfig } from "../../../core/app/config/runner-config.js";
+import type { IssueWorkflow } from "../../../core/port/issue-workflow.js";
+import type { RunnerSettings } from "../../../core/app/settings/runner-settings.js";
 import { splitRepository } from "./github-client.js";
 
 type GitHubLabel = string | { name?: string | null };
 
-const excludedPickupLabels = (config: RunnerConfig): string[] => [
+const excludedPickupLabels = (config: RunnerSettings): string[] => [
   config.labels.running,
   config.labels.blocked,
   config.labels.prCreated
 ];
 
-export function createIssueWorkflow(client: Octokit, config: RunnerConfig): IssueWorkflow {
+export function createIssueWorkflow(client: Octokit, config: RunnerSettings): IssueWorkflow {
   const { owner, repo } = splitRepository(config.repository);
 
   return {

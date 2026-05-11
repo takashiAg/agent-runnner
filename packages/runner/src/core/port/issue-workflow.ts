@@ -1,4 +1,4 @@
-import type { Issue } from "../../domain/entity/issue.js";
+import type { Issue } from "../domain/entity/issue.js";
 
 export type GitHubIssue = Issue;
 

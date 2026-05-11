@@ -4,7 +4,7 @@ import { runOnce } from "../../core/app/usecases/run-once.js";
 import { routeCommentCommand } from "../../core/app/routing/command-router.js";
 import { inspectPatch } from "../../core/app/policy/patch-guard.js";
 import { loadConfig } from "../outbound/config/load-config.js";
-import { createRunOnceDependencies } from "../outbound/run-once-dependencies.js";
+import { createRunOnceDependencies } from "../composition-root.js";
 
 const program = new Command();
 

@@ -1,13 +1,13 @@
 import { execa } from "execa";
-import type { AgentCliResult } from "../../../core/app/ports/agent.js";
-import type { RunnerConfig } from "../../../core/app/config/runner-config.js";
+import type { AgentCliResult } from "../../../core/port/agent.js";
+import type { RunnerSettings } from "../../../core/app/settings/runner-settings.js";
 
 const commandRequestPattern =
   /\b(?:run|execute)\b.*\b(?:git|pnpm|npm|yarn|bash|sh|curl|docker|kubectl)\b/i;
 
 export async function runAgentCli(
   prompt: string,
-  config: RunnerConfig,
+  config: RunnerSettings,
   options: { cwd?: string } = {}
 ): Promise<AgentCliResult> {
   const provider = config.ai.providers[config.ai.provider];

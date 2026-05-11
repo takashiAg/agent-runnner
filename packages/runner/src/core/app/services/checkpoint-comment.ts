@@ -1,5 +1,5 @@
 import { formatCheckpoint, type Checkpoint } from "../../domain/entity/checkpoint.js";
-import type { IssueWorkflow } from "../ports/issue-workflow.js";
+import type { IssueWorkflow } from "../../port/issue-workflow.js";
 
 export async function commentCheckpoint(
   workflow: IssueWorkflow,

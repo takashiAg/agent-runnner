@@ -1,4 +1,4 @@
-import type { RepositoryAnalysis } from "../ports/repository.js";
+import type { RepositoryAnalysis } from "../../../core/domain/value-object/repository-analysis.js";
 
 export function buildIssueContext(input: {
   title: string;

@@ -1,6 +1,5 @@
-export type IssueType = "story" | "bug" | "task" | "unknown";
-export type AiLevel = "level-0" | "level-1" | "level-2" | "level-3";
-export type Risk = "low" | "medium" | "high" | "dangerous" | "unknown";
+import { AiLevel, IssueAction, IssueType, Risk } from "../../domain/enum/issue-classification.js";
+
 export type IssueClassificationConfig = {
   labels: {
     blocked: string;
@@ -18,7 +17,7 @@ export type IssueClassification = {
   issueType: IssueType;
   level: AiLevel;
   risk: Risk;
-  action: "plan" | "split-tasks" | "patch-only" | "apply-and-pr" | "block" | "ignore";
+  action: IssueAction;
   reasons: string[];
 };
 
@@ -33,49 +32,55 @@ export function classifyIssue(
   const reasons: string[] = [];
 
   if (labelSet.has(config.labels.blocked) || labelSet.has(config.labels.prCreated)) {
-    return { issueType, level, risk, action: "ignore", reasons: ["issue is terminal"] };
+    return { issueType, level, risk, action: IssueAction.Ignore, reasons: ["issue is terminal"] };
   }
-  if (risk === "dangerous") {
-    return { issueType, level, risk, action: "block", reasons: ["risk is dangerous"] };
+  if (risk === Risk.Dangerous) {
+    return { issueType, level, risk, action: IssueAction.Block, reasons: ["risk is dangerous"] };
   }
   if (labelSet.has(config.labels.splitTasks)) {
-    return { issueType, level, risk, action: "split-tasks", reasons };
+    return { issueType, level, risk, action: IssueAction.SplitTasks, reasons };
   }
-  if (labelSet.has(config.labels.plan) || level === "level-0") {
-    return { issueType, level, risk, action: "plan", reasons };
+  if (labelSet.has(config.labels.plan) || level === AiLevel.Level0) {
+    return { issueType, level, risk, action: IssueAction.Plan, reasons };
   }
   if (!labelSet.has(config.labels.trigger)) {
-    return { issueType, level, risk, action: "ignore", reasons: ["missing trigger label"] };
+    return {
+      issueType,
+      level,
+      risk,
+      action: IssueAction.Ignore,
+      reasons: ["missing trigger label"]
+    };
   }
-  if (risk === "high" || labelSet.has("needs:human-approval") || level === "level-1") {
-    return { issueType, level, risk, action: "patch-only", reasons };
+  if (risk === Risk.High || labelSet.has("needs:human-approval") || level === AiLevel.Level1) {
+    return { issueType, level, risk, action: IssueAction.PatchOnly, reasons };
   }
-  if (level === "level-2") {
-    return { issueType, level, risk, action: "apply-and-pr", reasons };
+  if (level === AiLevel.Level2) {
+    return { issueType, level, risk, action: IssueAction.ApplyAndPr, reasons };
   }
   reasons.push("level does not allow implementation");
-  return { issueType, level, risk, action: "patch-only", reasons };
+  return { issueType, level, risk, action: IssueAction.PatchOnly, reasons };
 }
 
 function getIssueType(labels: Set<string>, config: IssueClassificationConfig): IssueType {
-  if (labels.has(config.labels.story)) return "story";
-  if (labels.has(config.labels.bug)) return "bug";
-  if (labels.has(config.labels.task)) return "task";
-  return "unknown";
+  if (labels.has(config.labels.story)) return IssueType.Story;
+  if (labels.has(config.labels.bug)) return IssueType.Bug;
+  if (labels.has(config.labels.task)) return IssueType.Task;
+  return IssueType.Unknown;
 }
 
 function getLevel(labels: Set<string>): AiLevel {
-  if (labels.has("ai:level-0")) return "level-0";
-  if (labels.has("ai:level-1")) return "level-1";
-  if (labels.has("ai:level-2")) return "level-2";
-  if (labels.has("ai:level-3")) return "level-3";
-  return "level-1";
+  if (labels.has("ai:level-0")) return AiLevel.Level0;
+  if (labels.has("ai:level-1")) return AiLevel.Level1;
+  if (labels.has("ai:level-2")) return AiLevel.Level2;
+  if (labels.has("ai:level-3")) return AiLevel.Level3;
+  return AiLevel.Level1;
 }
 
 function getRisk(labels: Set<string>): Risk {
-  if (labels.has("risk:low")) return "low";
-  if (labels.has("risk:medium")) return "medium";
-  if (labels.has("risk:high")) return "high";
-  if (labels.has("risk:dangerous")) return "dangerous";
-  return "unknown";
+  if (labels.has("risk:low")) return Risk.Low;
+  if (labels.has("risk:medium")) return Risk.Medium;
+  if (labels.has("risk:high")) return Risk.High;
+  if (labels.has("risk:dangerous")) return Risk.Dangerous;
+  return Risk.Unknown;
 }

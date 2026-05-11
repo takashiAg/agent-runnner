@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { runOnce, type RunOnceDependencies } from "../src/core/app/usecases/run-once.js";
-import type { IssueWorkflow } from "../src/core/app/ports/issue-workflow.js";
+import type { IssueWorkflow } from "../src/core/port/issue-workflow.js";
 import { parseAiPatchOutput } from "../src/core/app/services/validate-ai-output.js";
 import { loadExampleConfig } from "./helpers.js";
 
@@ -79,6 +79,9 @@ function createDependencies(overrides: Partial<RunOnceDependencies> = {}): RunOn
     },
     async commitAndPushChanges() {
       return { branch: "ai/issue-123", baseBranch: "main", commitSha: "abc123" };
+    },
+    buildIssuePrompt(input) {
+      return JSON.stringify(input);
     },
     now: () => new Date("2026-05-12T00:00:00.000Z"),
     ...overrides

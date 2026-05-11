@@ -2,14 +2,14 @@ import { readdir, readFile, stat } from "node:fs/promises";
 import path from "node:path";
 import YAML from "yaml";
 import { Minimatch } from "minimatch";
-import type { RepositoryAnalysis } from "../../../core/app/ports/repository.js";
-import type { RunnerConfig } from "../../../core/app/config/runner-config.js";
+import type { RepositoryAnalysis } from "../../../core/port/repository.js";
+import type { RunnerSettings } from "../../../core/app/settings/runner-settings.js";
 
 export type Boundary = "backend" | "frontend" | "shared" | "infra" | "docs" | string;
 
 export async function analyzeRepository(
   root: string,
-  config: RunnerConfig
+  config: RunnerSettings
 ): Promise<RepositoryAnalysis> {
   const packageManager = await detectPackageManager(root);
   const workspaces = config.repositoryAnalysis.detectWorkspaces
@@ -45,7 +45,7 @@ async function detectPnpmWorkspaces(root: string): Promise<string[]> {
 
 async function detectBoundaries(
   root: string,
-  config: RunnerConfig
+  config: RunnerSettings
 ): Promise<Record<string, string[]>> {
   const files = await listFiles(root, config.repositoryAnalysis.includeFileTreeDepth);
   const result: Record<string, string[]> = {};

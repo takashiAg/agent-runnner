@@ -1,4 +1,4 @@
-import type { RunnerConfig } from "../config/runner-config.js";
+import type { RunnerSettings } from "../app/settings/runner-settings.js";
 
 export type AgentCliResult = {
   stdout: string;
@@ -7,6 +7,6 @@ export type AgentCliResult = {
 
 export type RunAgentCli = (
   prompt: string,
-  config: RunnerConfig,
+  config: RunnerSettings,
   options?: { cwd?: string }
 ) => Promise<AgentCliResult>;

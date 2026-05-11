@@ -9,4 +9,3 @@ describe("config", () => {
     expect(config.commentCommands.allowlist).toContain("/review");
   });
 });
-

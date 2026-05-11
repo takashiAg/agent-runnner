@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { classifyIssue } from "../src/runner/classify.js";
+import { classifyIssue } from "../src/core/app/policy/classify-issue.js";
 import { loadExampleConfig } from "./helpers.js";
 
 describe("classifyIssue", () => {
@@ -22,4 +22,3 @@ describe("classifyIssue", () => {
     expect(result.action).toBe("apply-and-pr");
   });
 });
-

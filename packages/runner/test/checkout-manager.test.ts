@@ -37,7 +37,15 @@ async function createSourceRepository(root: string): Promise<string> {
   await git(root, ["init", source]);
   await writeFile(path.join(source, "README.md"), "hello\n");
   await git(source, ["add", "README.md"]);
-  await git(source, ["-c", "user.name=test", "-c", "user.email=test@example.com", "commit", "-m", "init"]);
+  await git(source, [
+    "-c",
+    "user.name=test",
+    "-c",
+    "user.email=test@example.com",
+    "commit",
+    "-m",
+    "init"
+  ]);
   return source;
 }
 
@@ -64,10 +72,12 @@ describe("checkoutRepository", () => {
     expect(result.strategy).toBe("bare-cache");
     expect(result.repositoryPath).toBe(path.join(root, "clones", "run-1"));
     expect(await git(result.repositoryPath, ["rev-parse", "--is-inside-work-tree"])).toBe("true");
-    expect(await git(path.join(root, "cache", cacheDirectoryName(source)), [
-      "rev-parse",
-      "--is-bare-repository"
-    ])).toBe("true");
+    expect(
+      await git(path.join(root, "cache", cacheDirectoryName(source)), [
+        "rev-parse",
+        "--is-bare-repository"
+      ])
+    ).toBe("true");
   });
 
   it("uses a clean local repository for existing-local strategy", async () => {

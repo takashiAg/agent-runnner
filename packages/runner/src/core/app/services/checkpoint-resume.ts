@@ -61,9 +61,7 @@ export function parseCheckpointComment(body: string): Checkpoint | null {
   }
 }
 
-export function parseCheckpointComments(
-  comments: CheckpointComment[]
-): ParsedCheckpointComment[] {
+export function parseCheckpointComments(comments: CheckpointComment[]): ParsedCheckpointComment[] {
   return comments.flatMap((comment) => {
     const checkpoint = parseCheckpointComment(comment.body);
     return checkpoint ? [{ checkpoint, comment }] : [];
@@ -76,7 +74,9 @@ export function findLatestCheckpointComment(
   const parsed = parseCheckpointComments(comments);
   if (parsed.length === 0) return null;
 
-  return parsed.sort((left, right) => checkpointSortTime(right) - checkpointSortTime(left))[0] ?? null;
+  return (
+    parsed.sort((left, right) => checkpointSortTime(right) - checkpointSortTime(left))[0] ?? null
+  );
 }
 
 export function decideCheckpointResume(checkpoint: Checkpoint | null): ResumeDecision {

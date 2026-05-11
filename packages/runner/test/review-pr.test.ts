@@ -4,7 +4,9 @@ import type { PullRequestReviewWorkflow } from "../src/core/port/review-pr.js";
 import { buildPrReviewContext } from "../src/gateway/outbound/ai/build-pr-review-context.js";
 import { loadExampleConfig } from "./helpers.js";
 
-function createWorkflow(overrides: Partial<PullRequestReviewWorkflow> = {}): PullRequestReviewWorkflow {
+function createWorkflow(
+  overrides: Partial<PullRequestReviewWorkflow> = {}
+): PullRequestReviewWorkflow {
   return {
     async getPullRequest() {
       return {

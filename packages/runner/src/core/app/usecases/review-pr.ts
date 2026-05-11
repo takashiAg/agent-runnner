@@ -139,12 +139,7 @@ function formatReviewComment(review: ReviewOutput): string {
   }
 
   if (review.approval_notes.length > 0) {
-    lines.push(
-      "### Approval Notes",
-      "",
-      ...review.approval_notes.map((note) => `- ${note}`),
-      ""
-    );
+    lines.push("### Approval Notes", "", ...review.approval_notes.map((note) => `- ${note}`), "");
   }
 
   return lines.join("\n").trimEnd();

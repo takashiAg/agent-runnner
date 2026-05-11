@@ -23,7 +23,11 @@ export async function checkoutRepository(
     return { repositoryPath, strategy: config.checkout.strategy };
   }
 
-  const cachePath = path.join(options.cwd, config.checkout.cacheRoot, cacheDirectoryName(options.remoteUrl));
+  const cachePath = path.join(
+    options.cwd,
+    config.checkout.cacheRoot,
+    cacheDirectoryName(options.remoteUrl)
+  );
   await updateBareCache(config, options.remoteUrl, cachePath, options.cwd);
   await cloneRepository(config, cachePath, repositoryPath, options.cwd);
 
@@ -86,7 +90,10 @@ async function updateBareCache(
   }
 }
 
-async function assertExistingLocalRepository(repositoryPath: string, remoteUrl: string): Promise<void> {
+async function assertExistingLocalRepository(
+  repositoryPath: string,
+  remoteUrl: string
+): Promise<void> {
   if (!(await isGitRepository(repositoryPath, false))) {
     throw new Error("existing-local checkout requires a git repository");
   }
@@ -115,7 +122,9 @@ async function assertExistingLocalRepository(repositoryPath: string, remoteUrl: 
 }
 
 async function isGitRepository(repositoryPath: string, bare: boolean): Promise<boolean> {
-  const args = bare ? ["rev-parse", "--is-bare-repository"] : ["rev-parse", "--is-inside-work-tree"];
+  const args = bare
+    ? ["rev-parse", "--is-bare-repository"]
+    : ["rev-parse", "--is-inside-work-tree"];
   try {
     const result = await execa("git", args, { cwd: repositoryPath, reject: false });
     return result.exitCode === 0 && result.stdout.trim() === "true";

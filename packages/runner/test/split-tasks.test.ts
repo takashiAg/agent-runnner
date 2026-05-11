@@ -1,8 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  splitTasks,
-  type SplitTasksDependencies
-} from "../src/core/app/usecases/split-tasks.js";
+import { splitTasks, type SplitTasksDependencies } from "../src/core/app/usecases/split-tasks.js";
 import { loadExampleConfig } from "./helpers.js";
 
 function createDependencies(

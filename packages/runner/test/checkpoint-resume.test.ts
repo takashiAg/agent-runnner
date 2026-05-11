@@ -42,10 +42,12 @@ describe("checkpoint resume", () => {
       canResume: true,
       action: "resume-conflict"
     });
-    expect(decideCheckpointResume(checkpointFixture({ state: "validation_failed" }))).toMatchObject({
-      canResume: true,
-      action: "retry-validation"
-    });
+    expect(decideCheckpointResume(checkpointFixture({ state: "validation_failed" }))).toMatchObject(
+      {
+        canResume: true,
+        action: "retry-validation"
+      }
+    );
   });
 
   it("returns non-resume decisions for terminal or human states", () => {
@@ -53,11 +55,15 @@ describe("checkpoint resume", () => {
       canResume: false,
       action: "none"
     });
-    expect(decideCheckpointResume(checkpointFixture({ state: "needs_human_input" }))).toMatchObject({
-      canResume: false,
-      action: "wait-for-human"
-    });
-    expect(decideCheckpointResume(checkpointFixture({ state: "needs_human_approval" }))).toMatchObject({
+    expect(decideCheckpointResume(checkpointFixture({ state: "needs_human_input" }))).toMatchObject(
+      {
+        canResume: false,
+        action: "wait-for-human"
+      }
+    );
+    expect(
+      decideCheckpointResume(checkpointFixture({ state: "needs_human_approval" }))
+    ).toMatchObject({
       canResume: false,
       action: "wait-for-human"
     });

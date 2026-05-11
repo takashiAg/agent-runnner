@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { reviewOutputSchema } from "../src/review/review-output-schema.js";
+import { reviewOutputSchema } from "../src/core/app/contract/review-output.js";
 
 describe("reviewOutputSchema", () => {
   it("parses multi-role review output", () => {
@@ -10,4 +10,3 @@ describe("reviewOutputSchema", () => {
     expect(result.overall_decision).toBe("comment");
   });
 });
-

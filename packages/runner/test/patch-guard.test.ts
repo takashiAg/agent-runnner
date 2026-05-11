@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { inspectPatch } from "../src/patch/patch-guard.js";
+import { inspectPatch } from "../src/core/domain/policy/patch-guard.js";
 import { loadExampleConfig } from "./helpers.js";
 
 describe("inspectPatch", () => {
@@ -33,4 +33,3 @@ describe("inspectPatch", () => {
     expect(result.reasons.join("\n")).toContain("denylisted path");
   });
 });
-

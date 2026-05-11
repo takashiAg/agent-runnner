@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseTaskPlanningOutput } from "../src/planner/task-planner.js";
+import { parseTaskPlanningOutput } from "../src/core/app/usecases/task-planner.js";
 
 describe("parseTaskPlanningOutput", () => {
   it("parses task planning output", () => {
@@ -20,4 +20,3 @@ describe("parseTaskPlanningOutput", () => {
     expect(result.tasks).toHaveLength(1);
   });
 });
-

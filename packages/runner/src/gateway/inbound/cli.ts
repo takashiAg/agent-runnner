@@ -1,6 +1,8 @@
 #!/usr/bin/env node
-import { readFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
+import { setTimeout as sleep } from "node:timers/promises";
+import path from "node:path";
 import { Command } from "commander";
 import { splitTasks } from "../../core/app/usecases/split-tasks.js";
 import { reviewPr } from "../../core/app/usecases/review-pr.js";
@@ -17,6 +19,7 @@ import type { RunnerSettings } from "../../core/app/settings/runner-settings.js"
 import { loadConfig } from "../outbound/config/load-config.js";
 import { analyzeRepository } from "../outbound/repository/repository-analyzer.js";
 import { createIssueReader } from "../outbound/github/issue-reader.js";
+import { pollGitHubWorkerEvents } from "../outbound/github/polling-source.js";
 import { parseGitHubWebhookEvent } from "./webhook-event.js";
 import {
   createCheckpointDependencies,
@@ -212,6 +215,68 @@ program
     });
   });
 
+program
+  .command("poll")
+  .description("Run one GitHub polling pass without exposing an incoming webhook")
+  .requiredOption("-c, --config <path>", "config file path")
+  .option("--repo-root <path>", "local repository root for analysis", process.cwd())
+  .option("--state <path>", "polling state file", ".agent-runner/poll-state.json")
+  .option("--since <iso>", "override polling cursor with an ISO timestamp")
+  .action(async (options: { config: string; repoRoot: string; state: string; since?: string }) => {
+    const config = await loadConfig(options.config);
+    const result = await runPollingPass(config, {
+      repoRoot: options.repoRoot,
+      statePath: options.state,
+      since: options.since
+    });
+    console.log(JSON.stringify(result, null, 2));
+  });
+
+program
+  .command("poll-worker")
+  .description("Run a long-lived GitHub polling worker without exposing an incoming webhook")
+  .requiredOption("-c, --config <path>", "config file path")
+  .option("--repo-root <path>", "local repository root for analysis", process.cwd())
+  .option("--state <path>", "polling state file", ".agent-runner/poll-state.json")
+  .option("--interval-seconds <seconds>", "polling interval", "60")
+  .option("--since <iso>", "override polling cursor for the first pass with an ISO timestamp")
+  .action(
+    async (options: {
+      config: string;
+      repoRoot: string;
+      state: string;
+      intervalSeconds: string;
+      since?: string;
+    }) => {
+      const config = await loadConfig(options.config);
+      const intervalSeconds = Number(options.intervalSeconds);
+      if (!Number.isInteger(intervalSeconds) || intervalSeconds <= 0) {
+        throw new Error(`Invalid polling interval: ${options.intervalSeconds}`);
+      }
+
+      let firstSince = options.since;
+      console.log(
+        JSON.stringify({
+          ok: true,
+          worker: "polling",
+          intervalSeconds,
+          statePath: options.state
+        })
+      );
+
+      while (true) {
+        const result = await runPollingPass(config, {
+          repoRoot: options.repoRoot,
+          statePath: options.state,
+          since: firstSince
+        });
+        firstSince = undefined;
+        console.log(JSON.stringify(result));
+        await sleep(intervalSeconds * 1000);
+      }
+    }
+  );
+
 await program.parseAsync(process.argv);
 
 async function handleWorkerRequest(
@@ -287,4 +352,70 @@ async function executeWorkerAction(
     case "ignore":
       return { skipped: true, reason: action.reason };
   }
+}
+
+type PollState = {
+  since: string;
+  handledEventIds: string[];
+};
+
+async function runPollingPass(
+  config: RunnerSettings,
+  options: { repoRoot: string; statePath: string; since?: string }
+): Promise<{
+  ok: true;
+  since: string;
+  nextSince: string;
+  received: number;
+  handled: Array<{ id: string; action: WorkerAction; result: unknown }>;
+}> {
+  const state = await readPollState(options.statePath);
+  const since = parseSince(options.since ?? state?.since);
+  const nextSince = new Date();
+  const handledIds = new Set(state?.handledEventIds ?? []);
+  const client = createGitHubApi(config);
+  const events = await pollGitHubWorkerEvents(client, config, { since });
+  const handled: Array<{ id: string; action: WorkerAction; result: unknown }> = [];
+
+  for (const polledEvent of events) {
+    if (handledIds.has(polledEvent.id)) continue;
+    const action = routeWorkerEvent(config, polledEvent.event);
+    const result = await executeWorkerAction(config, action, { repoRoot: options.repoRoot });
+    handled.push({ id: polledEvent.id, action, result });
+    handledIds.add(polledEvent.id);
+  }
+
+  await writePollState(options.statePath, {
+    since: nextSince.toISOString(),
+    handledEventIds: [...handledIds].slice(-500)
+  });
+
+  return {
+    ok: true,
+    since: since.toISOString(),
+    nextSince: nextSince.toISOString(),
+    received: events.length,
+    handled
+  };
+}
+
+function parseSince(value: string | undefined): Date {
+  if (!value) return new Date();
+  const since = new Date(value);
+  if (Number.isNaN(since.getTime())) throw new Error(`Invalid polling cursor: ${value}`);
+  return since;
+}
+
+async function readPollState(statePath: string): Promise<PollState | null> {
+  try {
+    return JSON.parse(await readFile(statePath, "utf8")) as PollState;
+  } catch (error) {
+    if (error instanceof Error && "code" in error && error.code === "ENOENT") return null;
+    throw error;
+  }
+}
+
+async function writePollState(statePath: string, state: PollState): Promise<void> {
+  await mkdir(path.dirname(statePath), { recursive: true });
+  await writeFile(statePath, `${JSON.stringify(state, null, 2)}\n`);
 }
